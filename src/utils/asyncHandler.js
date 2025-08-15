@@ -1,7 +1,7 @@
 // method -1 :- using async await
 const  asyncHandler=(fn)=>  async (req, res, next)=>{
-    try{
-        await fn(req, res, next);
+    try{ 
+      return  await fn(req, res, next);
     }
     catch(err){
       res.status(err.code || 500).json
