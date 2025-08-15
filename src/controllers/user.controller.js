@@ -74,7 +74,20 @@ const createdUser=await User.findById(user._id).select(
 //res.status(201).json(createdUser);
 });
 
-
+const generateAccessTokenAndRefreshToken=async function(user_id){
+    try{
+        const user= await User.findById(user_id);
+    const refreshToken=user.generateAccessToken();
+    const accessToken=user.generatAccessToken();
+    user.refreshToken=refreshToken;
+    
+    await user.save({validateBeforeSave:false});
+    return {accessToken,refreshToken};
+    }
+    catch(error){
+        throw new ApiError(500,"Something went wrong while generating access token and refersh token");
+    }
+}
 
 // 2) login user
 const loginUser=asyncHandler(async(req,res,next)=>{
@@ -111,8 +124,75 @@ else{
  }
 // STEP 5 :- CREATE JWT TOKEN AND SEND IT BACK TO THE USER
 
-
+ const {accessToken,refreshToken}=await generateAccessTokenAndRefreshToken(user._id);
+ 
+ const loggedInUser=await User
+ .findById(user._id)
+ .select(
+    "-password -refreshToken"
+ );
+ const options={
+     httpOnly:true,
+     secure:true
+ }
+ res
+ .status(200)
+ .cookie("accessToken",accessToken,options)
+ .cookie("refreshToken",refreshToken,options)
+ .json(
+    new ApiResponse(
+        200,
+        {
+            user:loggedInUser,accessToken,refreshToken
+        },
+        "User logged in successfully"
+    )
+   
+ )
 
 });
 
-export {registerUser};
+// 3) LogOut User
+const logoutUser=asyncHandler(async(req,res,next)=>{
+// step 1 :- by using findById
+    const user= await User.findById(req.user._id);
+    if(!user){
+        throw new ApiError(404,"User not found");
+    }
+    if(!user.refreshToken){
+        throw new ApiError(400,"User is not logged in");
+    }
+    user.refreshToken=undefined;
+// step 2 :- by using findByIdAndUpdate
+// await User.findByIdAndUpdate(
+//     req.user._id,
+//     {
+//         $unset: {
+//             refreshToken: 1 // this removes the field from document
+//         }
+//     },
+//     {
+//         new: true
+//     }
+// )
+
+
+    const options={
+        httpOnly:true,
+        secure:true
+    }
+    res.status(200).clearCookie("accessToken",options)
+    .clearCookie("refreshToken",options)
+    .json(new ApiResponse(
+        200,
+        "User logged out successfully",
+        {}
+        ));
+})
+
+export {
+    registerUser ,
+    loginUser,
+    logoutUser
+      
+ };
