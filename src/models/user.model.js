@@ -67,7 +67,7 @@ userSchema.pre("save",async function(next){
  * Checks if the provided password matches the stored password.
  * @param {string} password - The password to check.
  * @returns {Promise<boolean>} True if the password is correct, false otherwise.
- */
+ */ 
 userSchema.methods.isPasswordCorrect = async function(password) {
     // Use bcrypt to compare the provided password with the stored hashed password
     return await bcrypt.compare(password, this.password);
